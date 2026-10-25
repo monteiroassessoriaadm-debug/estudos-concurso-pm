@@ -2,6 +2,8 @@
 
 Sistema de estudo estratégico pessoal, focado em concursos de Polícia Militar — matérias e tópicos organizados, banco de questões **reais** (nunca geradas), prática com correção automática, caderno de erros categorizado e painel de desempenho.
 
+Produção: deploy via Vercel + Postgres (Neon). Build roda `prisma migrate deploy` automaticamente a cada push.
+
 ## Stack
 
 - Next.js 16 (App Router) + React 19 + TypeScript
