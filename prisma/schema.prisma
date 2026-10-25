@@ -1,0 +1,144 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  sessoesEstudo SessaoEstudo[]
+  respostas     Resposta[]
+
+  @@map("users")
+}
+
+model Materia {
+  id    String  @id @default(cuid())
+  nome  String  @unique
+  slug  String  @unique
+  ordem Int     @default(0)
+
+  topicos Topico[]
+
+  @@map("materias")
+}
+
+model Topico {
+  id        String  @id @default(cuid())
+  materiaId String
+  materia   Materia @relation(fields: [materiaId], references: [id], onDelete: Cascade)
+  nome      String
+  slug      String
+  ordem     Int     @default(0)
+
+  questoes      Questao[]
+  sessoesEstudo SessaoEstudo[]
+
+  @@unique([materiaId, slug])
+  @@map("topicos")
+}
+
+enum NivelQuestao {
+  FACIL
+  MEDIO
+  DIFICIL
+}
+
+model Questao {
+  id          String        @id @default(cuid())
+  topicoId    String
+  topico      Topico        @relation(fields: [topicoId], references: [id])
+  enunciado   String
+  alternativas Json // [{ letra: "A", texto: "..." }, ...]
+  gabarito    String // letra da alternativa correta
+  explicacao  String?
+
+  // Proveniência — toda questão aqui é real, nunca gerada
+  concurso String // ex.: "Soldado PM SP"
+  banca    String // ex.: "Vunesp"
+  estado   String // UF, ex.: "SP"
+  ano      Int
+  fonteUrl String?
+
+  nivel     NivelQuestao @default(MEDIO)
+  createdAt DateTime     @default(now())
+
+  respostas Resposta[]
+
+  @@index([topicoId])
+  @@index([estado])
+  @@index([banca])
+  @@map("questoes")
+}
+
+model Resposta {
+  id                  String    @id @default(cuid())
+  questaoId           String
+  questao             Questao   @relation(fields: [questaoId], references: [id])
+  userId              String
+  user                User      @relation(fields: [userId], references: [id])
+  alternativaEscolhida String
+  correta             Boolean
+  sessaoEstudoId      String?
+  sessaoEstudo        SessaoEstudo? @relation(fields: [sessaoEstudoId], references: [id])
+  respondedAt         DateTime  @default(now())
+
+  erro ErroRegistro?
+
+  @@index([userId])
+  @@index([questaoId])
+  @@map("respostas")
+}
+
+enum MotivoErro {
+  NAO_SABIA_CONTEUDO
+  INTERPRETACAO_ERRADA
+  PEGADINHA_BANCA
+  DESATENCAO
+}
+
+model ErroRegistro {
+  id         String     @id @default(cuid())
+  respostaId String     @unique
+  resposta   Resposta   @relation(fields: [respostaId], references: [id], onDelete: Cascade)
+  motivo     MotivoErro?
+  observacao String?
+  revisado   Boolean    @default(false)
+  createdAt  DateTime   @default(now())
+
+  @@map("erros_registro")
+}
+
+enum TipoSessaoEstudo {
+  TEORIA
+  QUESTOES
+  REVISAO
+  SIMULADO
+}
+
+model SessaoEstudo {
+  id           String           @id @default(cuid())
+  userId       String
+  user         User             @relation(fields: [userId], references: [id])
+  topicoId     String?
+  topico       Topico?          @relation(fields: [topicoId], references: [id])
+  tipo         TipoSessaoEstudo
+  duracaoMin   Int
+  observacao   String?
+  createdAt    DateTime         @default(now())
+
+  respostas Resposta[]
+
+  @@index([userId])
+  @@map("sessoes_estudo")
+}
